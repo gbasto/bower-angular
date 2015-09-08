@@ -1,5 +1,5 @@
 /**
- * @license AngularJS v1.4.6-build.4223+sha.80a2176
+ * @license AngularJS v1.4.6-local+sha.22d7e36
  * (c) 2010-2015 Google, Inc. http://angularjs.org
  * License: MIT
  */
@@ -57,7 +57,7 @@ function minErr(module, ErrorConstructor) {
       return match;
     });
 
-    message += '\nhttp://errors.angularjs.org/1.4.6-build.4223+sha.80a2176/' +
+    message += '\nhttp://errors.angularjs.org/1.4.6-local+sha.22d7e36/' +
       (module ? module + '/' : '') + code;
 
     for (i = SKIP_INDEXES, paramPrefix = '?'; i < templateArgs.length; i++, paramPrefix = '&') {
@@ -2376,7 +2376,7 @@ function toDebugString(obj) {
  * - `codeName` – `{string}` – Code name of the release, such as "jiggling-armfat".
  */
 var version = {
-  full: '1.4.6-build.4223+sha.80a2176',    // all of these placeholder strings will be replaced by grunt's
+  full: '1.4.6-local+sha.22d7e36',    // all of these placeholder strings will be replaced by grunt's
   major: 1,    // package task
   minor: 4,
   dot: 6,
@@ -6351,10 +6351,9 @@ function $TemplateCacheProvider() {
  *
  * * **falsy:** No scope will be created for the directive. The directive will use its parent's scope.
  *
- * * **`true`:** A new child scope that prototypically inherits from its parent will be created for
- * the directive's element. If multiple directives on the same element request a new scope,
- * only one new scope is created. The new scope rule does not apply for the root of the template
- * since the root of the template always gets a new scope.
+ * * **`true`:** A new scope will be created for the directive's element. If multiple directives on the
+ * same element request a new scope, only one new scope is created. The new scope rule does not apply
+ * for the root of the template since the root of the template always gets a new scope.
  *
  * * **`{...}` (an object hash):** A new "isolate" scope is created for the directive's element. The
  * 'isolate' scope differs from normal scope in that it does not prototypically inherit from its parent
@@ -6459,10 +6458,9 @@ function $TemplateCacheProvider() {
  *
  * #### `controllerAs`
  * Identifier name for a reference to the controller in the directive's scope.
- * This allows the controller to be referenced from the directive template. This is especially
- * useful when a directive is used as component, i.e. with an `isolate` scope. It's also possible
- * to use it in a directive without an `isolate` / `new` scope, but you need to be aware that the
- * `controllerAs` reference might overwrite a property that already exists on the parent scope.
+ * This allows the controller to be referenced from the directive template. The directive
+ * needs to define a scope for this configuration to be used. Useful in the case when
+ * directive is used as component.
  *
  *
  * #### `restrict`
@@ -26105,8 +26103,8 @@ var ngOptionsMinErr = minErr('ngOptions');
  */
 
 // jshint maxlen: false
-//                     //00001111111111000000000002222222222000000000000000000000333333333300000000000000000000000004444444444400000000000005555555555555550000000006666666666666660000000777777777777777000000000000000888888888800000000000000000009999999999
-var NG_OPTIONS_REGEXP = /^\s*([\s\S]+?)(?:\s+as\s+([\s\S]+?))?(?:\s+group\s+by\s+([\s\S]+?))?(?:\s+disable\s+when\s+([\s\S]+?))?\s+for\s+(?:([\$\w][\$\w]*)|(?:\(\s*([\$\w][\$\w]*)\s*,\s*([\$\w][\$\w]*)\s*\)))\s+in\s+([\s\S]+?)(?:\s+track\s+by\s+([\s\S]+?))?$/;
+//                     //00001111111111000000000002222222222000000000000000000000333333333300000000000000000000000004444444444400000000000005555555555555550000000006666666666666660000000777777777777777000000000000000888888888800000000000000000009999999999000000000000000000AAAAAAAAAA000
+var NG_OPTIONS_REGEXP = /^\s*([\s\S]+?)(?:\s+as\s+([\s\S]+?))?(?:\s+group\s+by\s+([\s\S]+?))?(?:\s+disable\s+when\s+([\s\S]+?))?\s+for\s+(?:([\$\w][\$\w]*)|(?:\(\s*([\$\w][\$\w]*)\s*,\s*([\$\w][\$\w]*)\s*\)))\s+in\s+([\s\S]+?)(?:\s+track\s+by\s+([\s\S]+?))?(?:\s+default\s+([\s\S]+?))?$/;
                         // 1: value expression (valueFn)
                         // 2: label expression (displayFn)
                         // 3: group by expression (groupByFn)
@@ -26116,6 +26114,7 @@ var NG_OPTIONS_REGEXP = /^\s*([\s\S]+?)(?:\s+as\s+([\s\S]+?))?(?:\s+group\s+by\s
                         // 7: object item value variable name
                         // 8: collection expression
                         // 9: track by expression
+                        // 10 (A): default value expression
 // jshint maxlen: 100
 
 
@@ -26148,6 +26147,8 @@ var ngOptionsDirective = ['$compile', '$parse', function($compile, $parse) {
     var selectAsFn = selectAs && $parse(selectAs);
     var viewValueFn = selectAsFn || valueFn;
     var trackByFn = trackBy && $parse(trackBy);
+    // An expression that generates an default option in cause there is no option for the viewValue
+    var defaultValueFn = $parse(match[10]);
 
     // Get the value by which we are going to track the option
     // if we have a trackFn then use that (passing scope and locals)
@@ -26245,6 +26246,7 @@ var ngOptionsDirective = ['$compile', '$parse', function($compile, $parse) {
         var optionValues = valuesFn(scope) || [];
         var optionValuesKeys = getOptionValuesKeys(optionValues);
         var optionValuesLength = optionValuesKeys.length;
+        var defaultValue = defaultValueFn(scope);
 
         for (var index = 0; index < optionValuesLength; index++) {
           var key = (optionValues === optionValuesKeys) ? index : optionValuesKeys[index];
@@ -26262,6 +26264,7 @@ var ngOptionsDirective = ['$compile', '$parse', function($compile, $parse) {
         }
 
         return {
+          defaultValue: defaultValue,
           items: optionItems,
           selectValueMap: selectValueMap,
           getOptionFromViewValue: function(value) {
@@ -26348,6 +26351,10 @@ var ngOptionsDirective = ['$compile', '$parse', function($compile, $parse) {
 
         selectCtrl.writeValue = function writeNgOptionsValue(value) {
           var option = options.getOptionFromViewValue(value);
+          // if there is no option and a default value is set
+          if (!option && !!options.defaultValue) {
+            ngModelCtrl.$setViewValue(options.defaultValue);
+          }
 
           if (option && !option.disabled) {
             if (selectElement[0].value !== option.selectValue) {
